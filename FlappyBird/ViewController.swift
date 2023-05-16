@@ -29,7 +29,12 @@ class ViewController: UIViewController {
 //        ビューにシーンを表示
         skView.presentScene(scene)
     }
-
-
+    
+//    ステータスバーを消す
+    override var prefersStatusBarHidden: Bool {
+            get {
+                return true
+            }
+        }
 }
 
