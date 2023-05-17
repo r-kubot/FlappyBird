@@ -15,6 +15,10 @@ class GameScene: SKScene {
     
 // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
+        
+//        重力を設定
+        physicsWorld.gravity = CGVector(dx: 0, dy: -4)
+        
 //        背景色
         backgroundColor = UIColor(red: 0.15, green: 0.75, blue: 0.90, alpha: 1)
         
@@ -43,7 +47,7 @@ class GameScene: SKScene {
         
 //       　スクロールするアクションを作成
 //    　　　左方向に画像一枚分スクロールさせるアクション
-        let moveGround = SKAction.moveBy(x: groundTexture.size().width, y: 0, duration: 5)
+        let moveGround = SKAction.moveBy(x: -groundTexture.size().width, y: 0, duration: 5)
         
 //         元の位置に戻すアクション
         let resetGround = SKAction.moveBy(x: groundTexture.size().width, y: 0, duration: 0)
@@ -56,19 +60,25 @@ class GameScene: SKScene {
             let sprite = SKSpriteNode(texture: groundTexture)
             
 //         テクスチャを指定してスプライトを作成
-            let groundSprite = SKSpriteNode(texture: groundTexture)
+//            let groundSprite = SKSpriteNode(texture: groundTexture)
             
 //         スプライトの表示する位置を指定する
-            groundSprite.position = CGPoint(
-                x: groundTexture.size().width / 2 + groundTexture.size().width * CGFloat(i),
+            sprite.position = CGPoint(
+                x: groundTexture.size().width / 2  + groundTexture.size().width * CGFloat(i),
                 y: groundTexture.size().height / 2
-            )
+                        )
             
 //         スプライトにアクションを設定する
             sprite.run(repeatScrollGround)
             
+//         スプライトに物理体を設定
+            sprite.physicsBody = SKPhysicsBody(rectangleOf: groundTexture.size())
+            
+//         衝突の際動かないよう設定
+            sprite.physicsBody?.isDynamic = false
+            
 //         シーンにスプライトを追加する
-            scrollNode.addChild(groundSprite)
+            scrollNode.addChild(sprite)
         }
     }
     
@@ -158,12 +168,20 @@ class GameScene: SKScene {
             let under = SKSpriteNode(texture: wallTexture)
             under.position = CGPoint(x: 0, y: under_wall_y)
             
+//            下側の壁に物理体を設定
+            under.physicsBody = SKPhysicsBody(rectangleOf: wallTexture.size())
+            under.physicsBody?.isDynamic = false
+            
 //            壁をまとめるノードに下側の壁を追加
             wall.addChild(under)
             
 //            上側の壁を作成
             let upper = SKSpriteNode(texture: wallTexture)
             upper.position = CGPoint(x: 0, y: under_wall_y + wallTexture.size().height + slit_length)
+            
+//            上側の壁に物理体を設定
+            upper.physicsBody = SKPhysicsBody(rectangleOf: wallTexture.size())
+            upper.physicsBody?.isDynamic = false
             
 //            壁をまとめるノードに上側の壁を追加
             wall.addChild(upper)
@@ -200,11 +218,24 @@ class GameScene: SKScene {
         bird = SKSpriteNode(texture: birdTextureA)
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
         
+//        物理体を設定
+        bird.physicsBody = SKPhysicsBody(circleOfRadius: bird.size.height / 2)
+        
 //        アニメーションを設定
         bird.run(flap)
         
 //        スプライトを追加
         addChild(bird)
             
+    }
+    
+//    画面をタップしたときに呼ばれる
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        
+//        鳥の速度を0にする
+        bird.physicsBody?.velocity = CGVector.zero
+        
+//        鳥に縦方向の力を与える
+        bird.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 15))
     }
 }
