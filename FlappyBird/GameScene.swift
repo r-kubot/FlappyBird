@@ -21,6 +21,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
 //    スコア用
     var score = 0
+    let userDefaults:UserDefaults = UserDefaults.standard
     
 // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
@@ -281,13 +282,18 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
 //        スコアカウント用の透明な壁と衝突
         if (contact.bodyA.categoryBitMask & scoreCategory) == scoreCategory || (contact.bodyB.categoryBitMask & scoreCategory) == scoreCategory {
-            
             print("ScoreUp")
             score += 1
         } else {
-//         壁か地面と衝突
-            print("GameOver")
-            
+//          ベストスコア更新か確認する
+            var bestScore = userDefaults.integer(forKey: "BEST")
+            if score > bestScore {
+            bestScore = score
+            userDefaults.set(bestScore, forKey: "BEST")
+            } else {
+//            壁か地面と衝突
+                print("GameOver")
+                
 //            スクロール停止
             scrollNode.speed = 0
             
