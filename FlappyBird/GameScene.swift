@@ -21,7 +21,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     //    スコア用
     var score = 0
-    let userDefaults:UserDefaults = UserDefaults.standard
     var scoreLabelNode:SKLabelNode!
     var bestScoreLabelNode:SKLabelNode!
     let userDefaults:UserDefaults = UserDefaults.standard
@@ -55,46 +54,46 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func setupGround() {
-        //        地面画像
+        // 地面の画像を読み込む
         let groundTexture = SKTexture(imageNamed: "ground")
         groundTexture.filteringMode = .nearest
-        
-        //       　必要な枚数を計算
+
+        // 必要な枚数を計算
         let needNumber = Int(self.frame.size.width / groundTexture.size().width) + 2
-        
-        //       　スクロールするアクションを作成
-        //    　　　左方向に画像一枚分スクロールさせるアクション
+
+        // スクロールするアクションを作成
+        // 左方向に画像一枚分スクロールさせるアクション
         let moveGround = SKAction.moveBy(x: -groundTexture.size().width, y: 0, duration: 5)
-        
-        //         元の位置に戻すアクション
+
+        // 元の位置に戻すアクション
         let resetGround = SKAction.moveBy(x: groundTexture.size().width, y: 0, duration: 0)
-        
-        //         左にスクロール->元の位置->左にスクロールと無限に繰り返すアクション
+
+        // 左にスクロール->元の位置->左にスクロールと無限に繰り返すアクション
         let repeatScrollGround = SKAction.repeatForever(SKAction.sequence([moveGround, resetGround]))
-        
-        //         groundのスプライトを配置する
+
+        // groundのスプライトを配置する
         for i in 0..<needNumber {
             let sprite = SKSpriteNode(texture: groundTexture)
-            
-            //         スプライトの表示する位置を指定する
+
+            // スプライトの表示する位置を指定する
             sprite.position = CGPoint(
                 x: groundTexture.size().width / 2  + groundTexture.size().width * CGFloat(i),
                 y: groundTexture.size().height / 2
             )
-            
-            //         スプライトにアクションを設定する
+
+            // スプライトにアクションを設定する
             sprite.run(repeatScrollGround)
-            
-            //         スプライトに物理体を設定
+
+            // スプライトに物理体を設定する
             sprite.physicsBody = SKPhysicsBody(rectangleOf: groundTexture.size())
-            
-            //         衝突のカテゴリー設定
-            sprite.physicsBody?.categoryBitMask = groundCategory
-            
-            //         衝突の際動かないよう設定
+
+            // 衝突のカテゴリー設定
+            sprite.physicsBody?.categoryBitMask = groundCategory    // ←追加
+
+            // 衝突の時に動かないように設定する
             sprite.physicsBody?.isDynamic = false
-            
-            //         シーンにスプライトを追加する
+
+            // スプライトを追加する
             scrollNode.addChild(sprite)
         }
     }
@@ -278,21 +277,20 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
     
-//    SKPhysicsContactDelegateのメソッド。衝突したときに呼ばれる
+// SKPhysicsContactDelegateのメソッド。衝突したときに呼ばれる
     func didBegin(_ contact: SKPhysicsContact) {
-        
-//        ゲームオーバーの時は何もしない
+        // ゲームオーバーのときは何もしない
         if scrollNode.speed <= 0 {
             return
         }
-        
-//        スコアカウント用の透明な壁と衝突
+
         if (contact.bodyA.categoryBitMask & scoreCategory) == scoreCategory || (contact.bodyB.categoryBitMask & scoreCategory) == scoreCategory {
+            // スコアカウント用の透明な壁と衝突した
             print("ScoreUp")
             score += 1
             scoreLabelNode.text = "Score:\(score)"
-            
-//          ベストスコア更新か確認する
+
+            // ベストスコア更新か確認する
             var bestScore = userDefaults.integer(forKey: "BEST")
             if score > bestScore {
                 bestScore = score
@@ -300,48 +298,45 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 userDefaults.set(bestScore, forKey: "BEST")
             }
         } else {
-//            壁か地面と衝突
-                print("GameOver")
-                
-//            スクロール停止
-                scrollNode.speed = 0
-                
-//            衝突後は地面と反発するのみ(リスタートまで壁と反発させない)
-                bird.physicsBody?.collisionBitMask = groundCategory
-                
-//            鳥が衝突した時の高さを元に、鳥が地面に落ちるまでの秒数(概算)+1を計算
-                let duration = bird.position.y / 400.0 + 1.0
-                
-//            指定秒数分、鳥を回転
-                let roll = SKAction.rotate(byAngle: 2.0 * Double.pi * duration, duration: duration)
-                bird.run(roll, completion:{
-//                回転が終わったら鳥の動きを止める
-                    self.bird.speed = 0
-                })
-            }
+            // 壁か地面と衝突した
+            print("GameOver")
+            
+            // スクロール停止させる
+            scrollNode.speed = 0
+
+            // 衝突後は地面と反発するのみとする(リスタートするまで壁と反発させない)
+            bird.physicsBody?.collisionBitMask = groundCategory
+
+            // 鳥が衝突した時の高さを元に、鳥が地面に落ちるまでの秒数(概算)+1を計算
+            let duration = bird.position.y / 400.0 + 1.0
+            // 指定秒数分、鳥をくるくる回転させる(回転速度は1秒に1周)
+            let roll = SKAction.rotate(byAngle: 2.0 * Double.pi * duration, duration: duration)
+            bird.run(roll, completion:{
+                // 回転が終わったら鳥の動きを止める
+                self.bird.speed = 0
+            })
         }
+    }
+    
+    func restart() {
+        // スコアを0にする
+        score = 0
+        scoreLabelNode.text = "Score:\(score)"    // ←追加
+
+        // 鳥を初期位置に戻し、壁と地面の両方に反発するように戻す
+        bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
+        bird.physicsBody?.velocity = CGVector.zero
+        bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
+        bird.zRotation = 0
+
+        // 全ての壁を取り除く
+        wallNode.removeAllChildren()
+
+        // 鳥の羽ばたきを戻す
+        bird.speed = 1
         
-        func restart() {
-            
-            //        スコアを0にする
-            score = 0
-            scoreLabelNode.text = "Score:\(score)"
-            
-            //        鳥を初期位置に戻し、壁と地面の両方に反発するように戻す
-            bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
-            bird.physicsBody?.velocity = CGVector.zero
-            bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
-            bird.zRotation = 0
-            
-            //        全ての壁を取り除く
-            wallNode.removeAllChildren()
-            
-            //        鳥の羽ばたきを戻す
-            bird.speed = 1
-            
-            //        スクロールを再開させる
-            scrollNode.speed = 1
-        }
+        // スクロールを再開させる
+        scrollNode.speed = 1
     }
     
     func setupScoreLabel() {
@@ -354,7 +349,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scoreLabelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.left
         scoreLabelNode.text = "Score:\(score)"
         self.addChild(scoreLabelNode)
-        
+
         // ベストスコア表示を作成
         let bestScore = userDefaults.integer(forKey: "BEST")
         bestScoreLabelNode = SKLabelNode()
