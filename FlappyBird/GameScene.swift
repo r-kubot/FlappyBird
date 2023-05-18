@@ -12,12 +12,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var scrollNode:SKNode!
     var wallNode:SKNode!
     var bird:SKSpriteNode!
+    var itemNode:SKNode!
     
     //    衝突判定カテゴリー
     let birdCategory: UInt32 = 1 << 0       // 0...00001
     let groundCategory: UInt32 = 1 << 1     // 0...00010
     let wallCategory: UInt32 = 1 << 2       // 0...00100
     let scoreCategory: UInt32 = 1 << 3      // 0...01000
+    let itemCategory: UInt32 = 1 << 4       // 0...10000
     
     //    スコア用
     var score = 0
@@ -43,11 +45,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         wallNode = SKNode()
         scrollNode.addChild(wallNode)
         
+        //        アイテム用のノード
+        itemNode = SKNode()
+        scrollNode.addChild(itemNode)
+
         //        各種スプライトを生成する処理をメソッドに分割
         setupGround()
         setupCloud()
         setupWall()
         setupBird()
+        setupItem()
         
         //        スコア表示ラベルの設定
         setupScoreLabel()
@@ -88,7 +95,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             sprite.physicsBody = SKPhysicsBody(rectangleOf: groundTexture.size())
 
             // 衝突のカテゴリー設定
-            sprite.physicsBody?.categoryBitMask = groundCategory    // ←追加
+            sprite.physicsBody?.categoryBitMask = groundCategory  
 
             // 衝突の時に動かないように設定する
             sprite.physicsBody?.isDynamic = false
@@ -262,7 +269,68 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         //        スプライトを追加
         addChild(bird)
     }
+    
+    func setupItem() {
+        
+        //アイテムの画像
+        let itemTexture = SKTexture(imageNamed: "item")
+        itemTexture.filteringMode = .linear
 
+        //移動距離を計算
+        let itemMovingDistance = self.frame.size.width + itemTexture.size().width
+
+        //画面外まで移動するアクションを追加
+        let moveItem = SKAction.moveBy(x: -itemMovingDistance, y: 0, duration:4)
+
+        //自身を取り除くアクションを作成
+        let removeItem = SKAction.removeFromParent()
+
+        // 2つのアニメーションを順に実行するアクションを作成
+        let itemAnimation = SKAction.sequence([moveItem, removeItem])
+
+        // アイテムの上下の振れ幅を80ptとする
+        let random_y_range: CGFloat = 80
+
+        // 空の中央位置(y座標)を取得
+        let groundSize = SKTexture(imageNamed: "ground").size()
+        let sky_center_y = groundSize.height + (self.frame.size.height - groundSize.height) / 2
+        
+        // アイテムを生成するアクションを作成
+        let createItemAnimation = SKAction.run({
+            
+        //アイテムのポジションを設定
+            self.itemNode.position = CGPoint(x: self.frame.size.width + itemTexture.size().width / 2, y: 0)
+            self.itemNode.zPosition = -50 // 雲より手前、地面より奥
+
+            // 空の中央位置にランダム値を足して、アイテムの表示位置を決定する
+            let random_y = CGFloat.random(in: -random_y_range...random_y_range)
+            let item_y = sky_center_y + random_y
+
+            // アイテムを作成
+            let itemSpriteNode = SKSpriteNode(texture: itemTexture)
+            itemSpriteNode.position = CGPoint(x: 0, y: item_y)
+
+            // アイテムの物理体を設定
+            itemSpriteNode.physicsBody = SKPhysicsBody(rectangleOf: itemTexture.size())
+            itemSpriteNode.physicsBody?.categoryBitMask = self.itemCategory
+            itemSpriteNode.physicsBody?.isDynamic = false
+            
+            // アイテムを表示するノードにアニメーションを設定
+            itemSpriteNode.run(itemAnimation)
+            
+            // アイテムを表示するノードに今回作成したアイテムを追加
+            self.itemNode.addChild(itemSpriteNode)
+        })
+        // 次のアイテム作成までの時間待ちのアクションを作成
+        let itemWaitAnimation = SKAction.wait(forDuration: 2)
+
+        // アイテムを作成->時間待ち->アイテムを作成を無限に繰り返すアクションを作成
+        let itemRepeatForeverAnimation = SKAction.repeatForever(SKAction.sequence([createItemAnimation, itemWaitAnimation]))
+
+        // アイテムを表示するノードにアイテムの作成を無限に繰り返すアクションを設定
+        itemNode.run(itemRepeatForeverAnimation)
+    }
+    
 //    画面をタップしたときに呼ばれる
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if scrollNode.speed > 0 {
@@ -321,7 +389,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func restart() {
         // スコアを0にする
         score = 0
-        scoreLabelNode.text = "Score:\(score)"    // ←追加
+        scoreLabelNode.text = "Score:\(score)"
 
         // 鳥を初期位置に戻し、壁と地面の両方に反発するように戻す
         bird.position = CGPoint(x: self.frame.size.width * 0.2, y:self.frame.size.height * 0.7)
