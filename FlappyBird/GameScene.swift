@@ -32,6 +32,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var itemScoreLabelNode:SKLabelNode!
     let userDefaults:UserDefaults = UserDefaults.standard
     
+    
     // SKView上にシーンが表示されたときに呼ばれるメソッド
     override func didMove(to view: SKView) {
         
@@ -41,6 +42,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         //        背景色
         backgroundColor = UIColor(red: 0.15, green: 0.75, blue: 0.90, alpha: 1)
+        
+        //アイテムサウンド
+        do{
+            musicPlayer = try AVAudioPlayer(data: musicData)
+            musicPlayer.volume = 0.2
+        }catch{
+            print("音の再生に失敗しました。")
+        }
         
         //        スクロールするスプライトの親ノード
         scrollNode = SKNode()
@@ -268,6 +277,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bird.physicsBody?.collisionBitMask = groundCategory | wallCategory
         bird.physicsBody?.contactTestBitMask = groundCategory | wallCategory | scoreCategory | itemCategory
         
+        // 衝突した時に回転させない
+        bird.physicsBody?.allowsRotation = false
+        
         //        アニメーションを設定
         bird.run(flap)
         
@@ -376,14 +388,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             print("ItemScoreUp")
             itemScore += 1
             itemScoreLabelNode.text = "ItemScore:\(itemScore)"
-            
-            do{
-                musicPlayer = try AVAudioPlayer(data: musicData)
-                musicPlayer.volume = 0.2
-                musicPlayer.play()
-            }catch{
-                print("音の再生に失敗しました。")
-            }
+            // 効果音の再生
+            musicPlayer.play()
             
             if (contact.bodyA.categoryBitMask & itemCategory) == itemCategory {
                 contact.bodyA.node?.removeFromParent()
